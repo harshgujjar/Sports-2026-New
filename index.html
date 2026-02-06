@@ -527,6 +527,91 @@
         .firebase-status.warning {
             background: #ff9800;
         }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
+
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .confirm-dialog.active {
+            display: flex;
+        }
+
+        .confirm-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .confirm-box h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .confirm-box p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .confirm-yes {
+            background: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .confirm-yes:hover {
+            background: #d32f2f;
+        }
+
+        .confirm-no {
+            background: #999;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .confirm-no:hover {
+            background: #777;
+        }
     </style>
 </head>
 <body>
@@ -797,6 +882,7 @@
                                     <th>Sport</th>
                                     <th>Role/Team</th>
                                     <th>Timestamp</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="masterTableBody">
@@ -1396,7 +1482,7 @@
             const tbody = document.getElementById('masterTableBody');
             
             if (allEnrollments.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">No enrollments yet</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">No enrollments yet</td></tr>';
                 return;
             }
             
@@ -1409,6 +1495,7 @@
                     <td>${enrollment.sport}</td>
                     <td>${enrollment.role}</td>
                     <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
+                    <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
                 </tr>
             `).join('');
         }
@@ -1427,7 +1514,7 @@
             const tbody = document.getElementById('masterTableBody');
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">No matching records</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">No matching records</td></tr>';
                 return;
             }
             
@@ -1440,6 +1527,7 @@
                     <td>${enrollment.sport}</td>
                     <td>${enrollment.role}</td>
                     <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
+                    <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
                 </tr>
             `).join('');
         }
@@ -1568,6 +1656,56 @@
         }
 
 
+
+        // Delete enrollment variables
+        let deleteEnrollmentId = null;
+        let deleteEnrollmentName = null;
+
+        // Show delete confirmation
+        function showDeleteConfirm(id, name) {
+            deleteEnrollmentId = id;
+            deleteEnrollmentName = name;
+            document.getElementById('confirmMessage').textContent = `Are you sure you want to delete the enrollment for "${name}"? This action cannot be undone.`;
+            document.getElementById('confirmDialog').classList.add('active');
+        }
+
+        // Confirm delete
+        function confirmDelete() {
+            if (!deleteEnrollmentId) return;
+            
+            enrollmentsRef.child(deleteEnrollmentId).remove()
+                .then(() => {
+                    showSuccess();
+                    document.getElementById('confirmDialog').classList.remove('active');
+                    deleteEnrollmentId = null;
+                    deleteEnrollmentName = null;
+                })
+                .catch((error) => {
+                    showError('Error deleting enrollment: ' + error.message);
+                    document.getElementById('confirmDialog').classList.remove('active');
+                });
+        }
+
+        // Cancel delete
+        function cancelDelete() {
+            document.getElementById('confirmDialog').classList.remove('active');
+            deleteEnrollmentId = null;
+            deleteEnrollmentName = null;
+        }
+
     </script>
+
+    <!-- Delete Confirmation Dialog -->
+    <div id="confirmDialog" class="confirm-dialog">
+        <div class="confirm-box">
+            <h3>⚠️ Delete Enrollment?</h3>
+            <p id="confirmMessage"></p>
+            <div class="confirm-buttons">
+                <button class="confirm-yes" onclick="confirmDelete()">Yes, Delete</button>
+                <button class="confirm-no" onclick="cancelDelete()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
