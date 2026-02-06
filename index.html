@@ -819,68 +819,6 @@
                     <div id="sportWiseContainer"></div>
                 </div>
                 
-                <!-- Firebase Setup (Admin) -->
-                <div id="setup" class="form-section">
-                    <h2>🔥 Firebase Database Setup (ADMIN ONLY)</h2>
-                    
-                    <div id="setupInstructions" class="setup-box">
-                        <h3>🚀 Quick Setup (5 Minutes):</h3>
-                        <ol>
-                            <li><strong>Go to Firebase Console:</strong><br>
-                                <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>
-                            </li>
-                            
-                            <li style="margin-top: 15px;"><strong>Create Project:</strong>
-                                <ul style="margin-top: 5px; margin-left: 20px;">
-                                    <li>Click "Add project"</li>
-                                    <li>Name: <code>Davan Sports 2026</code></li>
-                                    <li>Disable Google Analytics (not needed)</li>
-                                    <li>Click "Create project"</li>
-                                </ul>
-                            </li>
-                            
-                            <li style="margin-top: 15px;"><strong>Set up Realtime Database:</strong>
-                                <ul style="margin-top: 5px; margin-left: 20px;">
-                                    <li>In left menu, click "Realtime Database"</li>
-                                    <li>Click "Create Database"</li>
-                                    <li>Choose location: <code>asia-southeast1</code></li>
-                                    <li>Start in: <strong>Test mode</strong></li>
-                                    <li>Click "Enable"</li>
-                                </ul>
-                            </li>
-                            
-                            <li style="margin-top: 15px;"><strong>Get Configuration:</strong>
-                                <ul style="margin-top: 5px; margin-left: 20px;">
-                                    <li>Click ⚙️ icon → "Project settings"</li>
-                                    <li>Scroll to "Your apps" section</li>
-                                    <li>Click the "</>" (Web) icon</li>
-                                    <li>App nickname: <code>Sports Enrollment</code></li>
-                                    <li>Click "Register app"</li>
-                                    <li>Copy the <code>firebaseConfig</code> object</li>
-                                </ul>
-                            </li>
-                            
-                            <li style="margin-top: 15px;"><strong>Paste Configuration Below</strong></li>
-                        </ol>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="firebaseConfig">Firebase Configuration (JSON) *</label>
-                        <textarea id="firebaseConfig" rows="10" placeholder='{
-  "apiKey": "YOUR_API_KEY",
-  "authDomain": "your-project.firebaseapp.com",
-  "databaseURL": "https://your-project.firebaseio.com",
-  "projectId": "your-project-id",
-  "storageBucket": "your-project.appspot.com",
-  "messagingSenderId": "123456789",
-  "appId": "1:123456789:web:abcdef"
-}'></textarea>
-                    </div>
-
-                    <button class="btn" onclick="saveFirebaseConfig()">💾 Save & Initialize Firebase</button>
-
-                    <div id="firebaseConfigStatus" style="display: none; margin-top: 20px;"></div>
-                </div>
             </div>
         </div>
     </div>
@@ -935,53 +873,45 @@
 
         populateSportFilters();
 
-        // Initialize Firebase from saved config
-        function initFirebase() {
-            const savedConfig = localStorage.getItem('firebaseConfig');
-            
-            if (savedConfig) {
-                try {
-                    const config = JSON.parse(savedConfig);
-                    
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp(config);
-                    }
-                    
-                    database = firebase.database();
-                    enrollmentsRef = database.ref('enrollments');
-                    
-                    updateFirebaseStatus('connected');
-                    
-                    // Listen for changes
-                    enrollmentsRef.on('value', (snapshot) => {
-                        allEnrollments = [];
-                        snapshot.forEach((childSnapshot) => {
-                            allEnrollments.push({
-                                id: childSnapshot.key,
-                                ...childSnapshot.val()
-                            });
-                        });
-                        
-                        if (userRole === 'admin') {
-                            updateMasterSheet();
-                            updateSportWise();
-                            updateStats();
-                        } else if (userRole === 'student') {
-                            updateStudentView();
-                        }
-                    });
-                    
-                    return true;
-                } catch (error) {
-                    console.error('Firebase init error:', error);
-                    updateFirebaseStatus('error');
-                    return false;
-                }
-            }
-            
-            updateFirebaseStatus('not-configured');
-            return false;
+        // Firebase Configuration (Pre-configured)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHPw8wqUStx6eBrM_ae5zHyfMZM5b1pnA",
+            authDomain: "davan-sports-2026.firebaseapp.com",
+            databaseURL: "https://davan-sports-2026-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "davan-sports-2026",
+            storageBucket: "davan-sports-2026.firebasestorage.app",
+            messagingSenderId: "91640913546",
+            appId: "1:91640913546:web:a30fb3a532e14ba7f45773"
+        };
+
+        // Initialize Firebase immediately
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        
+        database = firebase.database();
+        enrollmentsRef = database.ref('enrollments');
+        
+        updateFirebaseStatus('connected');
+        
+        // Listen for changes
+        enrollmentsRef.on('value', (snapshot) => {
+            allEnrollments = [];
+            snapshot.forEach((childSnapshot) => {
+                allEnrollments.push({
+                    id: childSnapshot.key,
+                    ...childSnapshot.val()
+                });
+            });
+            
+            if (userRole === 'admin') {
+                updateMasterSheet();
+                updateSportWise();
+                updateStats();
+            } else if (userRole === 'student') {
+                updateStudentView();
+            }
+        });
 
         // Update Firebase status indicator
         function updateFirebaseStatus(status) {
@@ -1002,8 +932,7 @@
             }
         }
 
-        // Initialize on page load
-        initFirebase();
+        // Firebase is initialized above (pre-configured)
 
         // Role selection
         function selectRole(role) {
@@ -1101,7 +1030,7 @@
                     <button class="tab active" onclick="showTab('enrollment')">📝 Enrollment Form</button>
                     <button class="tab admin-only" onclick="showTab('master')">📊 Master Sheet (All Classes)</button>
                     <button class="tab admin-only" onclick="showTab('sports')">🏅 Sport-wise Lists</button>
-                    <button class="tab admin-only" onclick="showTab('setup')">🔥 Firebase Setup</button>
+                    <!-- Firebase is pre-configured -->
                 `;
             }
         }
@@ -1638,67 +1567,7 @@
             document.body.removeChild(link);
         }
 
-        // Save Firebase config
-        function saveFirebaseConfig() {
-            const configText = document.getElementById('firebaseConfig').value.trim();
-            
-            if (!configText) {
-                alert('Please enter Firebase configuration');
-                return;
-            }
-            
-            try {
-                const config = JSON.parse(configText);
-                
-                // Validate config
-                const requiredFields = ['apiKey', 'authDomain', 'databaseURL', 'projectId'];
-                for (const field of requiredFields) {
-                    if (!config[field]) {
-                        alert(`Missing required field: ${field}`);
-                        return;
-                    }
-                }
-                
-                // Save config
-                localStorage.setItem('firebaseConfig', configText);
-                
-                // Initialize Firebase
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(config);
-                }
-                
-                database = firebase.database();
-                enrollmentsRef = database.ref('enrollments');
-                
-                updateFirebaseStatus('connected');
-                
-                // Listen for changes
-                enrollmentsRef.on('value', (snapshot) => {
-                    allEnrollments = [];
-                    snapshot.forEach((childSnapshot) => {
-                        allEnrollments.push({
-                            id: childSnapshot.key,
-                            ...childSnapshot.val()
-                        });
-                    });
-                    
-                    if (userRole === 'admin') {
-                        updateMasterSheet();
-                        updateSportWise();
-                        updateStats();
-                    }
-                });
-                
-                document.getElementById('firebaseConfigStatus').innerHTML = 
-                    '<div class="setup-box"><strong>✅ Firebase configured successfully! Database is now connected and ready.</strong></div>';
-                document.getElementById('firebaseConfigStatus').style.display = 'block';
-                
-                alert('✅ Firebase configured successfully! Students can now start enrolling.');
-                
-            } catch (error) {
-                alert('Invalid JSON configuration. Please check and try again.\n\nError: ' + error.message);
-            }
-        }
+
     </script>
 </body>
 </html>
