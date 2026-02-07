@@ -868,6 +868,7 @@
                             <option value="">All Sports</option>
                         </select>
                         
+                        <button class="btn" onclick="clearFilters()" style="background: #ff9800;">🔄 Clear Filters</button>
                         <button class="btn download-btn" onclick="downloadMasterExcel()">📥 Download Master Excel</button>
                     </div>
                     
@@ -1509,24 +1510,45 @@
                 return;
             }
             
-            tbody.innerHTML = allEnrollments.map((enrollment, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${enrollment.name}</td>
-                    <td>${enrollment.phone}</td>
-                    <td>${enrollment.classYear}</td>
-                    <td>${enrollment.sport}</td>
-                    <td>${enrollment.role}</td>
-                    <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
-                    <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
-                </tr>
-            `).join('');
+            // Restore previous filters if they exist
+            const lastClassFilter = localStorage.getItem('lastClassFilter');
+            const lastSportFilter = localStorage.getItem('lastSportFilter');
+            
+            if (lastClassFilter) {
+                document.getElementById('filterClass').value = lastClassFilter;
+            }
+            if (lastSportFilter) {
+                document.getElementById('filterSportMaster').value = lastSportFilter;
+            }
+            
+            // If filters are active, apply them
+            if (lastClassFilter || lastSportFilter) {
+                filterMaster();
+            } else {
+                // Show all enrollments
+                tbody.innerHTML = allEnrollments.map((enrollment, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${enrollment.name}</td>
+                        <td>${enrollment.phone}</td>
+                        <td>${enrollment.classYear}</td>
+                        <td>${enrollment.sport}</td>
+                        <td>${enrollment.role}</td>
+                        <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
+                        <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
+                    </tr>
+                `).join('');
+            }
         }
 
         // Filter master sheet
         function filterMaster() {
             const classFilter = document.getElementById('filterClass').value;
             const sportFilter = document.getElementById('filterSportMaster').value;
+            
+            // Save current filters to maintain them after delete
+            localStorage.setItem('lastClassFilter', classFilter);
+            localStorage.setItem('lastSportFilter', sportFilter);
             
             const filtered = allEnrollments.filter(enrollment => {
                 const matchClass = !classFilter || enrollment.classYear === classFilter;
@@ -1609,6 +1631,16 @@
             });
             
             container.innerHTML = html;
+        }
+
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('filterClass').value = '';
+            document.getElementById('filterSportMaster').value = '';
+            localStorage.removeItem('lastClassFilter');
+            localStorage.removeItem('lastSportFilter');
+            updateMasterSheet();
         }
 
         // Download Master Excel
@@ -1702,6 +1734,11 @@
                     document.getElementById('confirmDialog').classList.remove('active');
                     deleteEnrollmentId = null;
                     deleteEnrollmentName = null;
+                    
+                    // Maintain filters after deletion
+                    setTimeout(() => {
+                        filterMaster();
+                    }, 500);
                 })
                 .catch((error) => {
                     showError('Error deleting enrollment: ' + error.message);
