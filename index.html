@@ -924,18 +924,18 @@
             'Athletics – Girls 100mt': { type: 'individual', max: 5, additionalMax: 3, multipleAllowed: true },
             'Athletics – Boys Relay': { type: 'team', size: 4, multipleAllowed: true, minTeams: 2 },
             'Athletics – Girls Relay': { type: 'team', size: 4, multipleAllowed: true, minTeams: 2 },
-            'Volleyball - Boys': { type: 'team', size: 6, extra: 2 },
-            'Throwball - Girls': { type: 'team', size: 7, extra: 2 },
+            'Volleyball - Boys': { type: 'team', size: 6, extra: 2, multipleAllowed: false },
+            'Throwball - Girls': { type: 'team', size: 7, extra: 2, multipleAllowed: false },
             'Shuttle Badminton Boys': { type: 'team', size: 2, multipleAllowed: true },
             'Shuttle Badminton Girls': { type: 'team', size: 2, multipleAllowed: true },
             'Carrom Boys': { type: 'team', size: 2, multipleAllowed: true },
             'Chess Boys': { type: 'individual', multipleAllowed: true },
             'Carrom Girls': { type: 'team', size: 2, multipleAllowed: true },
             'Chess Girls': { type: 'individual', multipleAllowed: true },
-            'Cricket for Boys': { type: 'team', size: 11, extra: 4, captain: true },
-            'Cricket for Girls': { type: 'team', size: 11, extra: 4, captain: true },
-            'Tug of War Boys': { type: 'team', size: 10, extra: 4 },
-            'Tug of War Girls': { type: 'team', size: 10, extra: 4 }
+            'Cricket for Boys': { type: 'team', size: 11, extra: 4, captain: true, multipleAllowed: false },
+            'Cricket for Girls': { type: 'team', size: 11, extra: 4, captain: true, multipleAllowed: false },
+            'Tug of War Boys': { type: 'team', size: 10, extra: 4, multipleAllowed: false },
+            'Tug of War Girls': { type: 'team', size: 10, extra: 4, multipleAllowed: false }
         };
 
         const classes = [
@@ -1313,6 +1313,21 @@
             submitBtn.textContent = 'Submitting...';
             
             const config = sportConfigs[sport];
+            
+            // Check if team already exists for sports that don't allow multiple teams
+            if (!config.multipleAllowed) {
+                const existingTeam = allEnrollments.find(e => 
+                    e.sport === sport && e.classYear === teamClass
+                );
+                
+                if (existingTeam) {
+                    alert(`A ${sport} team has already been enrolled for ${teamClass}. Only one team per class is allowed.\n\nPlease contact admin if you need to make changes.`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = `Submit Team (${teamSize} Players)`;
+                    return;
+                }
+            }
+            
             const players = [];
             
             for (let i = 1; i <= teamSize; i++) {
@@ -1357,7 +1372,14 @@
                 
                 showSuccess();
                 
-                if (config.multipleAllowed) {
+                // For sports that don't allow multiple teams, always go back
+                if (config.multipleAllowed === false || !config.multipleAllowed) {
+                    // Show success message and go back
+                    setTimeout(() => {
+                        backToSportSelection();
+                    }, 1500);
+                } else if (config.multipleAllowed === true) {
+                    // Only for sports that explicitly allow multiple teams
                     if (confirm('Team enrolled successfully! Do you want to add another team for this sport?')) {
                         generateTeamForm(sport, config);
                         
@@ -1369,6 +1391,7 @@
                         backToSportSelection();
                     }
                 } else {
+                    // Default behavior - go back
                     backToSportSelection();
                 }
             } catch (error) {
