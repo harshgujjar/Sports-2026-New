@@ -991,6 +991,37 @@
                         <button class="btn" onclick="clearFilters()" style="background: #ff9800;">🔄 Clear Filters</button>
                         <button class="btn download-btn" onclick="downloadMasterExcel()">📥 Download Master Excel</button>
                     </div>
+
+                    <!-- Dynamic Filter Info Boxes -->
+                    <div id="filterInfoBoxes" style="display: none; margin-bottom: 20px;">
+                        <!-- When Sport is Selected - Show Class Info -->
+                        <div id="sportFilterInfo" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div style="background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; border-radius: 6px;">
+                                    <h4 style="color: #2e7d32; margin-bottom: 10px; font-size: 15px;">✅ Classes with Enrollments (<span id="sportEnrolledCount">0</span>)</h4>
+                                    <div id="sportEnrolledClasses" style="color: #1b5e20; font-size: 13px;"></div>
+                                </div>
+                                <div style="background: #ffebee; border-left: 4px solid #f44336; padding: 15px; border-radius: 6px;">
+                                    <h4 style="color: #c62828; margin-bottom: 10px; font-size: 15px;">❌ Classes NOT Enrolled (<span id="sportNotEnrolledCount">0</span>)</h4>
+                                    <div id="sportNotEnrolledClasses" style="color: #b71c1c; font-size: 13px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- When Class is Selected - Show Sport Info -->
+                        <div id="classFilterInfo" style="display: none;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                <div style="background: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; border-radius: 6px;">
+                                    <h4 style="color: #2e7d32; margin-bottom: 10px; font-size: 15px;">✅ Sports with Enrollments (<span id="classEnrolledCount">0</span>)</h4>
+                                    <div id="classEnrolledSports" style="color: #1b5e20; font-size: 13px;"></div>
+                                </div>
+                                <div style="background: #ffebee; border-left: 4px solid #f44336; padding: 15px; border-radius: 6px;">
+                                    <h4 style="color: #c62828; margin-bottom: 10px; font-size: 15px;">❌ Sports Pending (<span id="classPendingCount">0</span>)</h4>
+                                    <div id="classPendingSports" style="color: #b71c1c; font-size: 13px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="master-sheet">
                         <table id="masterTable">
@@ -1710,24 +1741,96 @@
             
             if (filtered.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;">No matching records</td></tr>';
-                return;
+            } else {
+                tbody.innerHTML = filtered.map((enrollment, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${enrollment.name}</td>
+                        <td>${enrollment.phone}</td>
+                        <td>${enrollment.classYear}</td>
+                        <td>${enrollment.sport}</td>
+                        <td>${enrollment.role}</td>
+                        <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editEnrollment('${enrollment.id}')">✏️ Edit</button>
+                            <button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
             }
-            
-            tbody.innerHTML = filtered.map((enrollment, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${enrollment.name}</td>
-                    <td>${enrollment.phone}</td>
-                    <td>${enrollment.classYear}</td>
-                    <td>${enrollment.sport}</td>
-                    <td>${enrollment.role}</td>
-                    <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
-                    <td>
-                        <button class="edit-btn" onclick="editEnrollment('${enrollment.id}')">✏️ Edit</button>
-                        <button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button>
-                    </td>
-                </tr>
-            `).join('');
+
+            // Show filter info boxes
+            const filterInfoBoxes = document.getElementById('filterInfoBoxes');
+            const sportFilterInfo = document.getElementById('sportFilterInfo');
+            const classFilterInfo = document.getElementById('classFilterInfo');
+
+            const allClasses = [
+                '1st B.Com', '2nd B.Com', '3rd B.Com', '1st BCA', 
+                '2nd BCA A SEC', '2nd BCA B SEC', '3rd BCA A SEC', 
+                '3rd BCA B SEC', '3rd BCA C SEC', '2nd BBA', '3rd BBA'
+            ];
+            const allSports = Object.keys(sportConfigs);
+
+            // When Sport is selected
+            if (sportFilter && !classFilter) {
+                filterInfoBoxes.style.display = 'block';
+                sportFilterInfo.style.display = 'block';
+                classFilterInfo.style.display = 'none';
+
+                const enrolledClasses = new Set(
+                    allEnrollments
+                        .filter(e => e.sport === sportFilter)
+                        .map(e => e.classYear)
+                );
+                const notEnrolledClasses = allClasses.filter(cls => !enrolledClasses.has(cls));
+
+                document.getElementById('sportEnrolledCount').textContent = enrolledClasses.size;
+                document.getElementById('sportNotEnrolledCount').textContent = notEnrolledClasses.length;
+
+                document.getElementById('sportEnrolledClasses').innerHTML = 
+                    Array.from(enrolledClasses)
+                        .map(cls => {
+                            const count = allEnrollments.filter(e => e.sport === sportFilter && e.classYear === cls).length;
+                            return `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #4CAF50;">${cls} (${count})</span>`;
+                        }).join('');
+
+                document.getElementById('sportNotEnrolledClasses').innerHTML = 
+                    notEnrolledClasses.length > 0 
+                        ? notEnrolledClasses.map(cls => `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #f44336;">${cls}</span>`).join('')
+                        : '<span style="color: #2e7d32; font-weight: 600;">✅ All classes enrolled!</span>';
+            }
+            // When Class is selected
+            else if (classFilter && !sportFilter) {
+                filterInfoBoxes.style.display = 'block';
+                sportFilterInfo.style.display = 'none';
+                classFilterInfo.style.display = 'block';
+
+                const enrolledSports = new Set(
+                    allEnrollments
+                        .filter(e => e.classYear === classFilter)
+                        .map(e => e.sport)
+                );
+                const pendingSports = allSports.filter(sport => !enrolledSports.has(sport));
+
+                document.getElementById('classEnrolledCount').textContent = enrolledSports.size;
+                document.getElementById('classPendingCount').textContent = pendingSports.length;
+
+                document.getElementById('classEnrolledSports').innerHTML = 
+                    Array.from(enrolledSports)
+                        .map(sport => {
+                            const count = allEnrollments.filter(e => e.classYear === classFilter && e.sport === sport).length;
+                            return `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #4CAF50;">${sport} (${count})</span>`;
+                        }).join('');
+
+                document.getElementById('classPendingSports').innerHTML = 
+                    pendingSports.length > 0 
+                        ? pendingSports.map(sport => `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #f44336;">${sport}</span>`).join('')
+                        : '<span style="color: #2e7d32; font-weight: 600;">✅ All sports enrolled!</span>';
+            }
+            // When both or neither are selected
+            else {
+                filterInfoBoxes.style.display = 'none';
+            }
         }
 
         // Update sport-wise view
@@ -1793,6 +1896,7 @@
             document.getElementById('filterSportMaster').value = '';
             localStorage.removeItem('lastClassFilter');
             localStorage.removeItem('lastSportFilter');
+            document.getElementById('filterInfoBoxes').style.display = 'none';
             updateMasterSheet();
         }
 
