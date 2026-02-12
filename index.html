@@ -543,6 +543,89 @@
             background: #d32f2f;
         }
 
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .edit-btn:hover {
+            background: #0b7dda;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .edit-modal.active {
+            display: flex;
+        }
+
+        .edit-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .edit-modal-content h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .save-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .save-btn:hover {
+            background: #45a049;
+        }
+
+        .cancel-modal-btn {
+            background: #9E9E9E;
+            color: white;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .cancel-modal-btn:hover {
+            background: #757575;
+        }
+
         .confirm-dialog {
             position: fixed;
             top: 0;
@@ -829,6 +912,25 @@
                     </div>
                 </div>
                 
+                <!-- Student Edit Section -->
+                <div id="studentEdit" class="form-section">
+                    <h2>📝 Edit My Enrollment</h2>
+                    <p style="margin-bottom: 20px; color: #666;">Enter your phone number to find and edit your enrollment</p>
+                    
+                    <div id="editSearchSection">
+                        <div class="form-group">
+                            <label for="searchPhone">Phone Number *</label>
+                            <input type="tel" id="searchPhone" pattern="[0-9]{10}" placeholder="Enter your 10 digit phone number" maxlength="10" required>
+                        </div>
+                        <button class="btn" onclick="searchStudentEnrollment()">🔍 Search My Enrollment</button>
+                    </div>
+
+                    <div id="editResultSection" style="display: none; margin-top: 30px;">
+                        <h3 style="color: #667eea; margin-bottom: 20px;">Your Enrollments</h3>
+                        <div id="studentEnrollmentsList"></div>
+                    </div>
+                </div>
+                
                 <!-- Master Sheet (Admin) -->
                 <div id="master" class="form-section">
                     <h2>Master Enrollment Sheet (All Classes)</h2>
@@ -1111,6 +1213,7 @@
                 container.innerHTML = `
                     <button class="tab active" onclick="showTab('enrollment')">📝 Enroll for Sports</button>
                     <button class="tab" onclick="showTab('myclass')">👥 My Class Enrollments</button>
+                    <button class="tab" onclick="showTab('studentEdit')">✏️ Edit My Enrollment</button>
                 `;
             } else {
                 container.innerHTML = `
@@ -1535,7 +1638,10 @@
                         <td>${enrollment.sport}</td>
                         <td>${enrollment.role}</td>
                         <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
-                        <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
+                        <td>
+                            <button class="edit-btn" onclick="editEnrollment('${enrollment.id}')">✏️ Edit</button>
+                            <button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button>
+                        </td>
                     </tr>
                 `).join('');
             }
@@ -1572,7 +1678,10 @@
                     <td>${enrollment.sport}</td>
                     <td>${enrollment.role}</td>
                     <td>${new Date(enrollment.timestamp).toLocaleString()}</td>
-                    <td><button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button></td>
+                    <td>
+                        <button class="edit-btn" onclick="editEnrollment('${enrollment.id}')">✏️ Edit</button>
+                        <button class="delete-btn" onclick="showDeleteConfirm('${enrollment.id}', '${enrollment.name}')">🗑️ Delete</button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -1751,6 +1860,234 @@
             document.getElementById('confirmDialog').classList.remove('active');
             deleteEnrollmentId = null;
             deleteEnrollmentName = null;
+        }
+
+        // Edit enrollment functionality
+        let editingEnrollmentId = null;
+        let editingEnrollmentData = null;
+
+        function editEnrollment(id) {
+            // Find the enrollment
+            const enrollment = allEnrollments.find(e => e.id === id);
+            
+            if (!enrollment) {
+                showError('Enrollment not found');
+                return;
+            }
+
+            // Store for editing
+            editingEnrollmentId = id;
+            editingEnrollmentData = {...enrollment};
+
+            // Create edit modal - Admin doesn't need phone verification
+            const modal = document.createElement('div');
+            modal.id = 'editModal';
+            modal.className = 'edit-modal active';
+            modal.innerHTML = `
+                <div class="edit-modal-content">
+                    <h3>✏️ Edit Enrollment</h3>
+                    
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" id="editName" value="${enrollment.name}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" id="editPhone" value="${enrollment.phone}" maxlength="10" pattern="[0-9]{10}" required>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button class="save-btn" onclick="saveEnrollmentEdit()">💾 Save Changes</button>
+                        <button class="cancel-modal-btn" onclick="closeEditModal()">Cancel</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        function saveEnrollmentEdit() {
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+
+            if (!name) {
+                showError('Name cannot be empty');
+                return;
+            }
+
+            // Validate phone
+            if (!/^\d{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit phone number');
+                return;
+            }
+
+            // Prepare update data
+            const updateData = {
+                name: name,
+                phone: phone,
+                classYear: editingEnrollmentData.classYear,
+                sport: editingEnrollmentData.sport,
+                role: editingEnrollmentData.role,
+                timestamp: editingEnrollmentData.timestamp,
+                lastModified: Date.now()
+            };
+
+            // Update in Firebase
+            enrollmentsRef.child(editingEnrollmentId).update(updateData)
+                .then(() => {
+                    showSuccess('Enrollment updated successfully!');
+                    closeEditModal();
+                    // The firebase listener will automatically update the display
+                })
+                .catch((error) => {
+                    showError('Error updating: ' + error.message);
+                });
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.remove();
+            }
+            editingEnrollmentId = null;
+            editingEnrollmentData = null;
+        }
+
+        // Student self-service edit functions
+        function searchStudentEnrollment() {
+            const phone = document.getElementById('searchPhone').value.trim();
+            
+            if (!/^\d{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit phone number');
+                return;
+            }
+
+            // Search for enrollments with this phone number
+            enrollmentsRef.orderByChild('phone').equalTo(phone).once('value', snapshot => {
+                const editResultSection = document.getElementById('editResultSection');
+                const studentEnrollmentsList = document.getElementById('studentEnrollmentsList');
+                
+                if (!snapshot.exists()) {
+                    showError('No enrollment found with this phone number');
+                    editResultSection.style.display = 'none';
+                    return;
+                }
+
+                // Display found enrollments
+                let html = '';
+                let enrollments = [];
+                
+                snapshot.forEach(child => {
+                    enrollments.push({
+                        id: child.key,
+                        ...child.val()
+                    });
+                });
+
+                enrollments.forEach((enrollment, index) => {
+                    html += `
+                        <div style="border: 2px solid #667eea; border-radius: 8px; padding: 20px; margin-bottom: 15px; background: #f9f9f9;">
+                            <h4 style="color: #667eea; margin-bottom: 15px;">Enrollment ${index + 1}</h4>
+                            <div style="margin-bottom: 10px;"><strong>Name:</strong> ${enrollment.name}</div>
+                            <div style="margin-bottom: 10px;"><strong>Phone:</strong> ${enrollment.phone}</div>
+                            <div style="margin-bottom: 10px;"><strong>Class:</strong> ${enrollment.classYear}</div>
+                            <div style="margin-bottom: 10px;"><strong>Sport:</strong> ${enrollment.sport}</div>
+                            <div style="margin-bottom: 10px;"><strong>Role:</strong> ${enrollment.role}</div>
+                            <div style="margin-bottom: 15px;"><strong>Enrolled on:</strong> ${new Date(enrollment.timestamp).toLocaleString()}</div>
+                            <button class="edit-btn" onclick="editStudentEnrollment('${enrollment.id}')">✏️ Edit Name/Phone</button>
+                        </div>
+                    `;
+                });
+
+                studentEnrollmentsList.innerHTML = html;
+                editResultSection.style.display = 'block';
+                showSuccess('Found ' + enrollments.length + ' enrollment(s)');
+            });
+        }
+
+        function editStudentEnrollment(id) {
+            // Find the enrollment
+            enrollmentsRef.child(id).once('value', snapshot => {
+                if (!snapshot.exists()) {
+                    showError('Enrollment not found');
+                    return;
+                }
+
+                const enrollment = snapshot.val();
+                editingEnrollmentId = id;
+                editingEnrollmentData = {...enrollment};
+
+                // Create edit modal for student
+                const modal = document.createElement('div');
+                modal.id = 'editModal';
+                modal.className = 'edit-modal active';
+                modal.innerHTML = `
+                    <div class="edit-modal-content">
+                        <h3>✏️ Edit Your Enrollment</h3>
+                        <p style="margin-bottom: 20px; color: #666;">Update your name or phone number</p>
+                        
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="editName" value="${enrollment.name}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number *</label>
+                            <input type="tel" id="editPhone" value="${enrollment.phone}" maxlength="10" pattern="[0-9]{10}" required>
+                        </div>
+
+                        <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <strong style="color: #1976d2;">Note:</strong> Class, Sport, and Role cannot be changed. Contact admin if you need to change these.
+                        </div>
+                        
+                        <div class="modal-buttons">
+                            <button class="save-btn" onclick="saveStudentEnrollmentEdit()">💾 Save Changes</button>
+                            <button class="cancel-modal-btn" onclick="closeEditModal()">Cancel</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+            });
+        }
+
+        function saveStudentEnrollmentEdit() {
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+
+            if (!name) {
+                showError('Name cannot be empty');
+                return;
+            }
+
+            if (!/^\d{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit phone number');
+                return;
+            }
+
+            // Prepare update data
+            const updateData = {
+                name: name,
+                phone: phone,
+                classYear: editingEnrollmentData.classYear,
+                sport: editingEnrollmentData.sport,
+                role: editingEnrollmentData.role,
+                timestamp: editingEnrollmentData.timestamp,
+                lastModified: Date.now()
+            };
+
+            // Update in Firebase
+            enrollmentsRef.child(editingEnrollmentId).update(updateData)
+                .then(() => {
+                    showSuccess('Your enrollment updated successfully!');
+                    closeEditModal();
+                    
+                    // Refresh the search to show updated data
+                    document.getElementById('searchPhone').value = phone;
+                    searchStudentEnrollment();
+                })
+                .catch((error) => {
+                    showError('Error updating: ' + error.message);
+                });
         }
 
     </script>
