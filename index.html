@@ -368,10 +368,14 @@
             padding: 15px;
             margin-bottom: 20px;
             border-radius: 4px;
+            color: #1a1a1a !important;
+            font-size: 15px;
+            line-height: 1.6;
         }
 
         .info-box strong {
-            color: #1976d2;
+            color: #0d47a1 !important;
+            font-weight: 700;
         }
 
         .success-message {
@@ -880,10 +884,11 @@
 
                 <!-- My Class View (Student) -->
                 <div id="myclass" class="form-section">
+                    <button class="back-btn visible" onclick="logout()">← Back to Login</button>
                     <h2>My Class Enrollments</h2>
                     
-                    <div class="info-box">
-                        <strong>ℹ️ Class View:</strong> Real-time enrollments from your class only.
+                    <div class="info-box" style="color: #000 !important;">
+                        <strong style="color: #0d47a1 !important;">ℹ️ Class View:</strong> <span style="color: #1a1a1a !important;">Real-time enrollments from your class only.</span>
                     </div>
 
                     <div class="filter-section">
@@ -914,6 +919,7 @@
                 
                 <!-- Student Edit Section -->
                 <div id="studentEdit" class="form-section">
+                    <button class="back-btn visible" onclick="logout()">← Back to Login</button>
                     <h2>📝 Edit My Enrollment</h2>
                     <p style="margin-bottom: 20px; color: #666;">Enter your phone number to find and edit your enrollment</p>
                     
@@ -947,6 +953,18 @@
                         <div class="stat-card">
                             <h3 id="totalSports">0</h3>
                             <p>Active Sports</p>
+                        </div>
+                    </div>
+
+                    <!-- Inactive Classes and Sports Display -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div id="inactiveClassesBox" style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; border-radius: 6px;">
+                            <h4 style="color: #e65100; margin-bottom: 10px; font-size: 16px;">⚠️ Inactive Classes (No Enrollments)</h4>
+                            <div id="inactiveClassesList" style="color: #d84315; font-size: 14px;">Loading...</div>
+                        </div>
+                        <div id="inactiveSportsBox" style="background: #fce4ec; border-left: 4px solid #e91e63; padding: 15px; border-radius: 6px;">
+                            <h4 style="color: #c2185b; margin-bottom: 10px; font-size: 16px;">⚠️ Inactive Sports (No Enrollments)</h4>
+                            <div id="inactiveSportsList" style="color: #ad1457; font-size: 14px;">Loading...</div>
                         </div>
                     </div>
                     
@@ -1602,6 +1620,32 @@
             
             const uniqueSports = new Set(allEnrollments.map(e => e.sport));
             document.getElementById('totalSports').textContent = uniqueSports.size;
+
+            // Show inactive classes
+            const allClasses = [
+                '1st B.Com', '2nd B.Com', '3rd B.Com', '1st BCA', 
+                '2nd BCA A SEC', '2nd BCA B SEC', '3rd BCA A SEC', 
+                '3rd BCA B SEC', '3rd BCA C SEC', '2nd BBA', '3rd BBA'
+            ];
+            const inactiveClasses = allClasses.filter(cls => !uniqueClasses.has(cls));
+            
+            const inactiveClassesList = document.getElementById('inactiveClassesList');
+            if (inactiveClasses.length === 0) {
+                inactiveClassesList.innerHTML = '<span style="color: #2e7d32; font-weight: 600;">✅ All classes have enrollments!</span>';
+            } else {
+                inactiveClassesList.innerHTML = inactiveClasses.map(cls => `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #ff9800;">${cls}</span>`).join('');
+            }
+
+            // Show inactive sports
+            const allSports = Object.keys(sportConfigs);
+            const inactiveSports = allSports.filter(sport => !uniqueSports.has(sport));
+            
+            const inactiveSportsList = document.getElementById('inactiveSportsList');
+            if (inactiveSports.length === 0) {
+                inactiveSportsList.innerHTML = '<span style="color: #2e7d32; font-weight: 600;">✅ All sports have enrollments!</span>';
+            } else {
+                inactiveSportsList.innerHTML = inactiveSports.map(sport => `<span style="display: inline-block; background: #fff; padding: 4px 10px; margin: 3px; border-radius: 4px; border: 1px solid #e91e63;">${sport}</span>`).join('');
+            }
         }
 
         // Update master sheet
